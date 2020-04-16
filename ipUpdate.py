@@ -31,11 +31,13 @@ except IOError:
 # password=password
 # host=host
 # daemon=yes|no (default=yes)
+# autostart=yes|no
 # interval=interval (default=600)
 # proxyservs=proxyservs
 # pidfile=pidfile (default=/var/run/ipUpdate.pid)
 # logfile=logfile (default=/var/log/dnsexit.log)
 # cachefile=cachefile (default=/tmp/dnsexit-ip.txt)
+# url==http://update.dnsexit.com/RemoteUpdate.sv
 #
 ###################################################
 
@@ -44,8 +46,8 @@ for iter in data:
     key, val = iter.rstrip('\n').split('=',1)
     keyval.append(val)
 
-login, password, host, daemon, interval  = keyval[0], keyval[1], keyval[2], keyval[3], keyval[4]
-proxyservs, pidfile, logfile, cachefile, url = keyval[5], keyval[6], keyval[7], keyval[8], keyval[9]
+login, password, host, daemon, autostart, interval  = keyval[0], keyval[1], keyval[2], keyval[3], keyval[4], keyval[5]
+proxyservs, pidfile, logfile, cachefile, url = keyval[6], keyval[7], keyval[8], keyval[9], keyval[10]
 
 def postNewIP(newip):
     posturl = url + "?login=" + login + "&password=" + password + "&host=" + host + "&myip=" + newip
@@ -83,7 +85,7 @@ def getProxyIP():
             data = urllib.request.urlopen("http://" + server).read()
         except urllib.error.URLError:
             mark("ERROR", "-100", "Return message format error.... Fail to grep the IP address from " + server)
-            continue
+            return
         ip = data.decode('utf-8')
         if re.match("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", ip):
             mark("INFO", "100", url + " says your IP address is: " + ip)
