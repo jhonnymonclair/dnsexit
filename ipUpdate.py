@@ -34,7 +34,7 @@ except IOError:
 # autostart=yes|no
 # interval=interval (default=600)
 # proxyservs=proxyservs
-# pidfile=pidfile (default=/var/run/ipUpdate.pid)
+# pidfile=pidfile (default=/run/ipUpdate.pid)
 # logfile=logfile (default=/var/log/dnsexit.log)
 # cachefile=cachefile (default=/tmp/dnsexit-ip.txt)
 # url==http://update.dnsexit.com/RemoteUpdate.sv
@@ -84,14 +84,14 @@ def getProxyIP():
         try:
             data = urllib.request.urlopen("http://" + server).read()
         except urllib.error.URLError:
-            mark("ERROR", "-100", "Return message format error.... Fail to grep the IP address from " + server)
-            return
+            mark("ERROR", "-100", "Return message format error.... Fail to grep the IP address from http://" + server)
+            continue
         ip = data.decode('utf-8')
         if re.match("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", ip):
-            mark("INFO", "100", url + " says your IP address is: " + ip)
+            mark("INFO", "100", "http://" + server + " says your IP address is: " + ip)
             return ip
         else:
-            mark("ERROR", "-100", "Return message format error.... Fail to grep the IP address from " + server)
+            mark("ERROR", "-100", "Return message format error.... Fail to grep the IP address from http://" + server)
     mark("ERROR", "-99", "Fail to get the proxy IP of your machine")
 
 def mark(type, code, message):
@@ -114,6 +114,8 @@ def clear():
 if daemon != "yes":
     clear()
     ip = getProxyIP()
+    if ip == None:
+        sys.exit(1)
     ipFlag = isIpChanged(ip);
     if ipFlag == 1:
         mark("INFO", "100", "IP is not changed from last successful update")
@@ -131,6 +133,8 @@ else:
         clear()
         mark("INFO", "100", "Started in daemon mode")
         ip = getProxyIP()
+        if ip == None:
+            sys.exit(1)
         ipFlag = isIpChanged(ip)
         if ipFlag == 1:
             mark("INFO", "100", "IP is not changed from last successful update")
