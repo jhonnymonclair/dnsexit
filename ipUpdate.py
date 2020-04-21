@@ -49,6 +49,40 @@ for iter in data:
 login, password, host, daemon, autostart, interval  = keyval[0], keyval[1], keyval[2], keyval[3], keyval[4], keyval[5]
 proxyservs, pidfile, logfile, cachefile, url = keyval[6], keyval[7], keyval[8], keyval[9], keyval[10]
 
+def daemonize():
+    try:
+        pid = os.fork()
+        if pid > 0:
+            # exit first parent
+            sys.exit(0)
+    except OSError as err:
+        sys.stderr.write('fork #1 failed: {0}\n'.format(err))
+        sys.exit(1)
+
+    # decouple from parent environment
+    os.chdir('/')
+    os.setsid()
+    os.umask(0)
+    # do second fork
+    try:
+        pid = os.fork()
+        if pid > 0:
+            # exit from second parent
+            sys.exit(0)
+    except OSError as err:
+        sys.stderr.write('fork #2 failed: {0}\n'.format(err))
+        sys.exit(1)
+
+    # redirect standard file descriptors
+    sys.stdout.flush()
+    sys.stderr.flush()
+    si = open(os.devnull, 'r')
+    so = open(os.devnull, 'a+')
+    se = open(os.devnull, 'a+')
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+
 def postNewIP(newip):
     posturl = url + "?login=" + login + "&password=" + password + "&host=" + host + "&myip=" + newip
     try:
@@ -97,13 +131,19 @@ def getProxyIP():
 def mark(type, code, message):
     now = datetime.now()
     dt_string = now.strftime("%c")
-    f = open(logfile, 'a')
-    f.write(dt_string + "\t" + type + "\t" + code + "\t" + message + "\n")
-    f.close()
+    try:
+        with open(logfile, 'a') as f:
+            f.write(dt_string + "\t" + type + "\t" + code + "\t" + message + "\n")
+            f.close
+    except:
+        sys.exit(1)
 
 def clear():
-    f = open(logfile, 'w')
-    f.close()
+    try:
+        with open(logfile, 'w') as f:
+            f.close
+    except:
+        sys.exit(1)
 
 ###################################################
 #
@@ -122,13 +162,21 @@ if daemon != "yes":
         sys.exit(0)
     postNewIP(ip)
 else:
-    pid = str(os.getpid())
     if os.path.isfile(pidfile):
-         print(pidfile + " already exists, exiting")
-         sys.exit(1)
-    f = open(pidfile, 'w')
-    f.write(pid)
-    f.close()
+        sys.stderr.write("Pidfile " + pidfile + " exists, another instance already running?\n")
+        sys.exit(1)
+    else:
+        # write pidfile
+        pid = str(os.getpid())
+        with open(pidfile,'w+') as f:
+            f.write(pid)
+            f.close
+    if sys.stdin.isatty() == 1:
+        # if launched by a real terminal:
+        #    then fork and redirect input/output
+        # else
+        #    systemd will take care of everything
+        daemonize()
     while True:
         clear()
         mark("INFO", "100", "Started in daemon mode")
