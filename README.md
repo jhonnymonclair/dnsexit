@@ -12,7 +12,7 @@ Install the program
 
 - copy the repository and set scripts as executables:
 ```
-git clone https://github.com/jhonnymonclair/dnsexit.git
+git clone https://github.com/jhonnymonclair/dnsexit
 cd dnsexit
 chmod 755 ipUpdate.py
 chmod 755 setup.py
@@ -40,5 +40,5 @@ sudo service dnsexit status
 Log
 -------
 
-log file (default:/var/log/dnsexit) saves info and errors
+log file (default:/var/log/dnsexit.log) saves info and errors
 about last update attempt.
