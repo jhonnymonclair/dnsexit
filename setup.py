@@ -19,7 +19,7 @@ proxyservs = "ip.dnsexit.com;ip2.dnsexit.com;ip3.dnsexit.com"
 logfile = "/var/log/dnsexit.log"
 cachefile = "/tmp/dnsexit-ip.txt"
 pidfile = "/run/ipUpdate.pid"
-siteurl = "http://update.dnsexit.com"
+siteurl = "https://update.dnsexit.com"
 geturlfrom = siteurl + "/ipupdate/dyndata.txt"
 
 URL_VALIDATE = siteurl + "/ipupdate/account_validate.jsp"
