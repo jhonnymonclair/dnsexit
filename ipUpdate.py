@@ -37,7 +37,7 @@ except IOError:
 # pidfile=pidfile (default=/run/ipUpdate.pid)
 # logfile=logfile (default=/var/log/dnsexit.log)
 # cachefile=cachefile (default=/tmp/dnsexit-ip.txt)
-# url==http://update.dnsexit.com/RemoteUpdate.sv
+# url==https://update.dnsexit.com/RemoteUpdate.sv
 #
 ###################################################
 
