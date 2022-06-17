@@ -1,19 +1,26 @@
 # ipUpdate.py
 Python client for DNSEXIT Dynamic Dns Service
 ###
-This is a Python3 client for <b>DNSEXIT</b> dynamic dns service. It is an (almost) faithful replica of the Perl original
-package for Linux available at http://www.dnsexit.com.
+This is a Python3 client for <b>DNSEXIT</b> dynamic dns service. 
 
-The setup.py script generates <b>dnsexit.conf</b> configuration file (100% compatible with the Perl version) in /etc
-and enables a system service if requested. Program runs successfully on Raspberry, tested under Buster Lite. 
+It is a fork of jhonnymonclair's version.
+
+However it is using the DNS Exit API which is more secure than 
+the RemoteUpdate.sv as it is not sending your username or password down the wire.
+
+It is also more resilient as it will not kill the daemon if you have temporarily lost
+internet connectivity while your IP address is being checked.
+
+The setup.py script generates <b>dnsexit.conf</b> configuration file in /etc
+and enables a system service if requested. 
 
 Install the program
 -------
 
 - copy the repository and set scripts as executables:
 ```
-git clone https://github.com/jhonnymonclair/dnsexit
-cd dnsexit
+git clone https://github.com/Gerard-CK/dnsexit-updater.git
+cd dnsexit-updater
 chmod 755 ipUpdate.py
 chmod 755 setup.py
 ```
