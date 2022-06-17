@@ -12,6 +12,8 @@ import time
 from datetime import datetime
 import urllib.request
 import re
+import json
+import requests
 
 cfile = "/etc/dnsexit.conf"
 
@@ -84,21 +86,34 @@ def daemonize():
     os.dup2(se.fileno(), sys.stderr.fileno())
 
 def postNewIP(newip):
-    posturl = url + "?login=" + login + "&password=" + password + "&host=" + host + "&myip=" + newip
+    posturl = url + "?apikey=" + password + "&host=" + host
+    mark("INFO", "100", "Calling " + posturl)
     try:
-        data = urllib.request.urlopen(posturl).read()
-    except urllib.error.URLError:
-        mark("ERROR", "-98", "Fail to post the IP of your machine")
+        #data = urllib.request.urlopen(urllib.request.Request(
+        #    posturl,
+        #    headers={"Accept" : 'application/json'}
+        #)).read()
+        data = requests.get(posturl)
+        mark("INFO", "100", "Server returned: {}".format(data.status_code))
+    #except urllib.error.URLError as e:
+    #    mark("ERROR", "-98", "Fail to post the IP of your machine " + e)
+    #    return
+    except BaseException as e:
+        mark("ERROR", "-98", 'Failed HTTP call {}'.format(e))
         return
-    httpstuff, response = data.decode('utf-8').split('\n',1)
-    if re.match("\d+\=\D+", response):
-        code, message =  response.split('=',1)
-        mark("Success", code, message)
+
+    try:
+        payload = data.json()
+        mark("INFO", "100", 'code: {} message: {}'.format(payload["code"], payload["message"]))
+    except ValueError:
+        mark("ERROR", "-99", "IP update failed. Returned content invalid: " + response)
+        return
+    if payload["code"] == 0 or payload["code"] == 1:
         f = open(cachefile, 'w')
         f.write(newip)
         f.close()
     else:
-        mark("ERROR", "-99", "IP update failed. Return content format error: " + response)
+        mark("ERROR", "-99", "IP update failed. Return content format error: " + payload["message"])
 
 def isIpChanged(newip):
     try:
@@ -116,6 +131,7 @@ def getProxyIP():
     servs = proxyservs.split(';')
     for server in servs:
         try:
+            mark("INFO", "100", "Getting IP from http://" + server)
             data = urllib.request.urlopen("http://" + server).read()
         except urllib.error.URLError:
             mark("ERROR", "-100", "Return message format error.... Fail to grep the IP address from http://" + server)
