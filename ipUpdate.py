@@ -98,7 +98,7 @@ def postNewIP(newip):
         f.write(newip)
         f.close()
     else:
-        mark("ERROR", "-99", "Return content format error")
+        mark("ERROR", "-99", "IP update failed. Return content format error: " + response)
 
 def isIpChanged(newip):
     try:
@@ -181,11 +181,14 @@ else:
         clear()
         mark("INFO", "100", "Started in daemon mode")
         ip = getProxyIP()
-        if ip == None:
-            sys.exit(1)
-        ipFlag = isIpChanged(ip)
-        if ipFlag == 1:
-            mark("INFO", "100", "IP is not changed from last successful update")
+        if ip != None:
+            ipFlag = isIpChanged(ip)
+            if ipFlag == 1:
+                mark("INFO", "100", "IP has not changed since last successful update")
+            else:
+                mark("INFO", "100", "IP has changed to: " + ip)
+                postNewIP(ip)
         else:
-            postNewIP(ip)
+            mark("WARN", "110", "Unable to retrieve current IP address.")
+
         time.sleep(int(interval))
