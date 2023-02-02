@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 import urllib.request
 import re
+import json
 
 cfile = "/etc/dnsexit.conf"
 
@@ -27,8 +28,7 @@ except IOError:
 #
 # CONFIGURATION FILE STRUCTURE
 #
-# login=login
-# password=password
+# apikey=DNS API Key
 # host=host
 # daemon=yes|no (default=yes)
 # autostart=yes|no
@@ -46,8 +46,8 @@ for iter in data:
     key, val = iter.rstrip('\n').split('=',1)
     keyval.append(val)
 
-login, password, host, daemon, autostart, interval  = keyval[0], keyval[1], keyval[2], keyval[3], keyval[4], keyval[5]
-proxyservs, pidfile, logfile, cachefile, url = keyval[6], keyval[7], keyval[8], keyval[9], keyval[10]
+apikey, host, daemon, autostart, interval  = keyval[0], keyval[1], keyval[2], keyval[3], keyval[4]
+proxyservs, pidfile, logfile, cachefile, url = keyval[5], keyval[6], keyval[7], keyval[8], keyval[9]
 
 def daemonize():
     try:
@@ -84,21 +84,35 @@ def daemonize():
     os.dup2(se.fileno(), sys.stderr.fileno())
 
 def postNewIP(newip):
-    posturl = url + "?login=" + login + "&password=" + password + "&host=" + host + "&myip=" + newip
+    updateRequest = url + "?apikey=" + apikey + "&host=" + host
+    mark("INFO", "100", "Calling " + url + "?apikey=*****" + "&host=" + host)
     try:
-        data = urllib.request.urlopen(posturl).read()
-    except urllib.error.URLError:
-        mark("ERROR", "-98", "Fail to post the IP of your machine")
+        data = urllib.request.urlopen(urllib.request.Request(
+            updateRequest,
+            headers={"Accept" : 'application/json'}
+        )).read().decode('utf-8')
+        
+        #mark("DEBUG", "100", "Server returned: " + data)
+    except urllib.error.URLError as e:
+        mark("ERROR", "-98", "Fail to post the IP of your machine {}".format(e))
         return
-    httpstuff, response = data.decode('utf-8').split('\n',1)
-    if re.match("\d+\=\D+", response):
-        code, message =  response.split('=',1)
-        mark("Success", code, message)
+    except BaseException as e:
+        mark("ERROR", "-98", 'Failed HTTP call {}'.format(e))
+        return
+
+    try:
+        response = json.loads(data)
+    except ValueError:
+        mark("ERROR", "-99", "IP update failed. Returned content invalid: " + data)
+        return
+    if response["code"] == 0 or response["code"] == 1:
+        mark("INFO", "100", "DNSExit returned code: {} => {} ".format(response["code"], response["message"]))
+
         f = open(cachefile, 'w')
         f.write(newip)
         f.close()
     else:
-        mark("ERROR", "-99", "Return content format error")
+        mark("ERROR", "-99", "IP update failed. DNSExit returned error code: {} => {} ".format(response["code"], response["message"]))
 
 def isIpChanged(newip):
     try:
@@ -116,6 +130,7 @@ def getProxyIP():
     servs = proxyservs.split(';')
     for server in servs:
         try:
+            mark("INFO", "100", "Getting IP from http://" + server)
             data = urllib.request.urlopen("http://" + server).read()
         except urllib.error.URLError:
             mark("ERROR", "-100", "Return message format error.... Fail to grep the IP address from http://" + server)
@@ -181,11 +196,14 @@ else:
         clear()
         mark("INFO", "100", "Started in daemon mode")
         ip = getProxyIP()
-        if ip == None:
-            sys.exit(1)
-        ipFlag = isIpChanged(ip)
-        if ipFlag == 1:
-            mark("INFO", "100", "IP is not changed from last successful update")
+        if ip != None:
+            ipFlag = isIpChanged(ip)
+            if ipFlag == 1:
+                mark("INFO", "100", "IP has not changed since last successful update")
+            else:
+                mark("INFO", "100", "IP has changed to: " + ip)
+                postNewIP(ip)
         else:
-            postNewIP(ip)
+            mark("WARN", "110", "Unable to retrieve current IP address.")
+
         time.sleep(int(interval))

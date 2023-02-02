@@ -19,7 +19,8 @@ proxyservs = "ip.dnsexit.com;ip2.dnsexit.com;ip3.dnsexit.com"
 logfile = "/var/log/dnsexit.log"
 cachefile = "/tmp/dnsexit-ip.txt"
 pidfile = "/run/ipUpdate.pid"
-siteurl = "http://update.dnsexit.com"
+siteurl = "https://update.dnsexit.com"
+apiurl = "https://api.dnsexit.com/dns/ud/"
 geturlfrom = siteurl + "/ipupdate/dyndata.txt"
 
 URL_VALIDATE = siteurl + "/ipupdate/account_validate.jsp"
@@ -31,6 +32,7 @@ MSG_WELCOME = "Welcome to DNSExit.Com Dynamic IP update setup script.\n" \
 MSG_ROOT = "Please run this script as root user."
 MSG_USERNAME = "Enter the username to dnsexit.com: "
 MSG_PASSWORD = "Enter password for your username: "
+MSG_APIKEY = "Enter your DNSExit API Key (generate one from DNSExit > Settings > DNS API Key): "
 MSG_CHECKING_USERPASS = "Validating your login credentials..."
 MSG_CHECKING_DOMAINS = "Fetching your DNS domains. It may take a while...\n" \
                          "Note: You should setup DNS for the domain first at your web account to get the domain listed below.\n"
@@ -116,12 +118,13 @@ if os.path.isfile(cachefile):
 #
 # Get url from dnsexit.com
 #
-try:
-    data = urllib.request.urlopen(geturlfrom).readline()
-except urllib.error.URLError:
-    print(ERR_NO_URL)
-    sys.exit(1)
-trash, url = data.decode('utf-8').split('=')
+# Obsolete: We're now using the API url instead
+# try:
+#     data = urllib.request.urlopen(geturlfrom).readline()
+# except urllib.error.URLError:
+#     print(ERR_NO_URL)
+#     sys.exit(1)
+# trash, url = data.decode('utf-8').split('=')
 
 #
 # Get username/password and validate it.
@@ -190,7 +193,7 @@ selected = make_select(hosts, MSG_SELECT_HOSTS, 1)
 print("\n" + MSG_YOU_HAVE_SELECTED)
 for iter in selected:
     print("\t" + iter)
-hosts = ";".join(hosts)
+hosts = ",".join(hosts)
 
 #
 # Ask if user wants daemon mode.
@@ -227,6 +230,9 @@ if daemon == "yes":
             pass
     #convert to seconds
     interval = interval * 60
+
+    apikey = input(MSG_APIKEY)
+
     seldirs = (programdir, "/usr/local/bin", "/usr/sbin")
     dir = make_select(seldirs, MSG_SELECT_DIR, 0)
     if dir[0] != programdir:
@@ -256,7 +262,7 @@ if daemon == "yes":
             f.write(" ExecStart=" + dir[0] + "/ipUpdate.py" + "\n")
         else:
             f.write(" ExecStart=" + program + "\n")
-        f.write(" Restart=on-abnormal" + "\n")
+        f.write(" Restart=on-failure" + "\n")
         f.write(" RestartSec=30" + "\n")
         f.write("\n")
         f.write("[Install]" + "\n")
@@ -291,8 +297,7 @@ except:
 print("\n" + MSG_GENERATING_CFG + cfile)
 try:
     f = open(cfile, 'w')
-    f.write("login=" + username + "\n")
-    f.write("password=" + password + "\n")
+    f.write("apikey=" + apikey + "\n")
     f.write("host=" + hosts + "\n")
     f.write("daemon=" + daemon + "\n")
     f.write("autostart=" + autostart + "\n")
@@ -301,7 +306,7 @@ try:
     f.write("pidfile=" + pidfile + "\n")
     f.write("logfile=" + logfile + "\n")
     f.write("cachefile=" + cachefile + "\n")
-    f.write("url=" + url)
+    f.write("url=" + apiurl)
     f.close()
 except:
     print(ERR_WRITE_CFG)
